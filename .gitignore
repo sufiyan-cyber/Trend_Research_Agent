@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+
+# runtime artifacts (reports, image blobs, vector store)
+data/
+marketing_agent_proposal.html
+research_agent_architecture.html
+research_agent_architecture.png
+research_agent_overview.html
+research_agent_overview.pdf
+research_agent_phases.md

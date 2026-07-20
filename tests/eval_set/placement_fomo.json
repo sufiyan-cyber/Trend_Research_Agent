@@ -1,0 +1,9 @@
+{
+  "name": "placement_fomo",
+  "text": "A viral LinkedIn carousel by a coding bootcamp: slide 1 says 'Your batchmate got 12 LPA. You watched reels.' Slides 2-6 show anonymized offer letters with salaries, slide 7 is 'Cohort closes Sunday midnight'. Text-heavy, screenshot receipts, hard deadline CTA.",
+  "expected": {
+    "plays_any": ["fomo", "scarcity", "social proof"],
+    "emotion_any": ["insecurity", "fomo", "envy", "aspiration"],
+    "bucket_any": ["final-years", "third-year-interns"]
+  }
+}

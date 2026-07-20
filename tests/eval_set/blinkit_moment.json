@@ -1,0 +1,9 @@
+{
+  "name": "blinkit_moment",
+  "text": "Blinkit posted this during the India vs Pakistan final: 'Order before the powerplay ends. 10 minutes. Faster than a Bumrah over.' Plain yellow background, huge black type, posted mid-match on Instagram and X. Comments full of people tagging friends.",
+  "expected": {
+    "plays_any": ["newsjack", "moment"],
+    "emotion_any": ["fomo", "urgency", "amusement", "belonging"],
+    "bucket_any": ["third-year-interns", "final-years", "switchers", "beginners"]
+  }
+}

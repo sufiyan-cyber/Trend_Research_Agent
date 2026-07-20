@@ -1,0 +1,9 @@
+{
+  "name": "founder_confession",
+  "text": "An edtech founder's raw selfie video, no editing: 'I failed 6 interviews before I understood this one thing about AI roles.' First-person confession, phone camera, burned-in captions, ends with 'comment LEARN and I'll DM you the framework'. Blew up on LinkedIn and Instagram reels.",
+  "expected": {
+    "plays_any": ["founder", "confession", "vulnerability", "education", "lead magnet", "value"],
+    "emotion_any": ["relief", "curiosity", "insecurity", "aspiration"],
+    "bucket_any": ["switchers", "beginners", "final-years"]
+  }
+}

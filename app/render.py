@@ -1,6 +1,8 @@
 """Render reports as clean markdown."""
 
-from app.schemas import CampaignReport, CampaignReportV1, CampaignReportV2
+from app.schemas import CampaignReport, CampaignReportV1, Critique, Scorecard
+
+_SEVERITY_MARK = {"high": "🔴 HIGH", "medium": "🟠 MEDIUM", "low": "🟡 LOW"}
 
 _CORE_SECTIONS: list[tuple[str, str]] = [
     ("campaign_idea", "The Campaign Idea"),
@@ -19,6 +21,50 @@ def core_to_markdown(core: CampaignReport) -> str:
         parts.append(f"## {heading}\n")
         parts.append(f"{getattr(core, field).strip()}\n")
     return "\n".join(parts)
+
+
+def _scorecard_markdown(sc: Scorecard | None) -> str:
+    """Scores as a table — the markdown twin of the report's charts.
+
+    Every chart in the UI has to be readable without the chart; this is that
+    fallback, and it is also what lands in an exported brief.
+    """
+    if sc is None:
+        return ""
+    rows = "\n".join(
+        f"| {d.label} | {d.score} | {'computed' if d.computed else 'judged'} | {d.rationale or '—'} |"
+        for d in sc.dimensions
+    )
+    out = [
+        f"## Scorecard — {sc.relevance_to_us}% relevant to us\n",
+        f"**Risk index:** {sc.risk_index}/100",
+        "",
+        "| Dimension | Score | Source | Notes |",
+        "|---|---:|---|---|",
+        rows,
+    ]
+    if sc.scoring_note:
+        out.append(f"\n*{sc.scoring_note}*")
+    return "\n".join(out)
+
+
+def _critique_markdown(cr: Critique | None) -> str:
+    """The negative section. Rendered ahead of the specialist detail on purpose —
+    it is meant to be read, not buried under an appendix."""
+    if cr is None:
+        return ""
+    out = ["## The Case Against\n"]
+    for w in cr.weaknesses:
+        out.append(f"**{_SEVERITY_MARK.get(w.severity, w.severity.upper())} — {w.issue}**")
+        out.append(f"- *Evidence:* {w.evidence}")
+        out.append(f"- *Mitigation:* {w.mitigation}\n")
+    out.append(f"**Why it might not have worked:** {cr.why_it_might_not_work}\n")
+    out.append(f"**Risk if we copy it:** {cr.risk_if_we_copy_it}\n")
+    out.append(f"**Brand safety:** {cr.brand_safety_flag}\n")
+    out.append(f"**Survivorship check:** {cr.survivorship_check}\n")
+    out.append(f"**What we could not verify:** {cr.what_we_could_not_verify}\n")
+    out.append(f"**Confidence in the positive read above:** {cr.confidence_in_positive_read}")
+    return "\n".join(out)
 
 
 def report_to_markdown(report: CampaignReportV1) -> str:
@@ -47,6 +93,15 @@ def report_to_markdown(report: CampaignReportV1) -> str:
         parts.append(f"**Angle:** {audience.angle}")
         parts.append(f"**Why this bucket:** {audience.fit_reasoning}")
         parts.append(f"**What to make:** {audience.content_suggestion}")
+
+    parts.extend(
+        block
+        for block in (
+            _scorecard_markdown(getattr(report, "scorecard", None)),
+            _critique_markdown(getattr(report, "critique", None)),
+        )
+        if block
+    )
 
     s = report.strategy
     play = s.primary_play + (f" + {s.secondary_play}" if s.secondary_play else "")

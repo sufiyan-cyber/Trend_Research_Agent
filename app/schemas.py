@@ -4,6 +4,8 @@ Versioning: CampaignReport (v0, seven core fields) is preserved as the
 composed core of CampaignReportV1. The composer LLM emits only the core;
 specialist detail + programmatic palette are assembled in code.
 CampaignReportV2 (Phase 3) adds the trend verdict + audience fit.
+CampaignReportV3 (Phase 6) adds the critique + scorecard. Every added field is
+optional, so records stored under an earlier version still validate as v3.
 """
 
 from datetime import datetime, timezone
@@ -216,6 +218,160 @@ class CampaignReportV2(CampaignReportV1):
     audience: AudienceFit | None = None
 
 
+# --- Phase 6: critique (the negative section) + scorecard --------------------
+#
+# Models default to praise. Three mechanisms fight that here, in order of how
+# hard they are to talk around:
+#   1. schema  — `weaknesses` has min_length=2, so "nothing negative" cannot be
+#                emitted at all; the structured-output call fails instead.
+#   2. persona — a separate adversarial node (see prompts/critique_v1.md) that
+#                never wrote the praise it is attacking.
+#   3. rubric  — forced enums + calibration anchors, so scores can't all be 90.
+
+
+class Weakness(BaseModel):
+    """One concrete thing wrong with the campaign. Evidence-bound, not a vibe."""
+
+    issue: str = Field(
+        description=(
+            "The specific weakness in one sentence, stated as a flaw and not "
+            "hedged into a compliment. Name what fails, not what 'could be "
+            "strengthened'."
+        )
+    )
+    severity: Literal["low", "medium", "high"] = Field(
+        description=(
+            "high: would likely sink the campaign or damage the brand. "
+            "medium: meaningfully caps the result. low: real but survivable."
+        )
+    )
+    evidence: str = Field(
+        description=(
+            "The exact element in the material (or its absence) that shows this. "
+            "If it is an inference rather than something visible, say so."
+        )
+    )
+    mitigation: str = Field(
+        description="What we would have to do differently to avoid it. Concrete, not 'test more'."
+    )
+
+
+class Critique(BaseModel):
+    """Adversarial read of the campaign. The section that is allowed to say no."""
+
+    weaknesses: list[Weakness] = Field(
+        min_length=2,
+        max_length=6,
+        description=(
+            "At least two real weaknesses, strongest first. Every campaign has "
+            "them — a campaign you cannot fault is a campaign you have not "
+            "examined. Do not pad to the maximum."
+        ),
+    )
+    why_it_might_not_work: str = Field(
+        description=(
+            "The strongest honest case that this campaign underperformed or was "
+            "not the cause of whatever result it is credited with. Argue it "
+            "properly, do not straw-man it."
+        )
+    )
+    risk_if_we_copy_it: str = Field(
+        description=(
+            "What specifically goes wrong if OUR brand runs this play: audience "
+            "mismatch, budget/production reality, channel fit, timing miss."
+        )
+    )
+    brand_safety_flag: str = Field(
+        description=(
+            "Reputational, legal, cultural or accessibility exposure. Write "
+            "'None identified' only if you genuinely find none — and then say "
+            "what you checked for."
+        )
+    )
+    survivorship_check: str = Field(
+        description=(
+            "Are we only seeing this because it worked? What would the same play "
+            "look like from the brands where it flopped and never got posted?"
+        )
+    )
+    what_we_could_not_verify: str = Field(
+        description=(
+            "The claims in this report resting on inference rather than visible "
+            "evidence — spend, reach, results, attribution, audience response. "
+            "Name them plainly."
+        )
+    )
+    confidence_in_positive_read: Literal["low", "medium", "high"] = Field(
+        description=(
+            "How much the optimistic half of this report should be trusted. "
+            "'high' requires visible outcome evidence (numbers, receipts), not "
+            "just a well-crafted creative."
+        )
+    )
+
+
+class ScoreDimension(BaseModel):
+    """One judged 0-100 dimension with its reasoning and provenance."""
+
+    key: str
+    label: str
+    score: int = Field(ge=0, le=100)
+    rationale: str = ""
+    computed: bool = False  # True when derived in code, not judged by the model
+
+
+class JudgedScores(BaseModel):
+    """The LLM-judged half of the scorecard. Emitted by the critic, not the composer.
+
+    Anchors live in the prompt: 50 is a competent average campaign, 80+ needs
+    exceptional evidence. Asking the skeptic for the numbers is deliberate —
+    the node that just listed the flaws is the one least likely to inflate them.
+    """
+
+    craft: int = Field(ge=0, le=100, description="Execution quality of the creative itself.")
+    originality: int = Field(ge=0, le=100, description="How much this differs from the standard version of this play.")
+    hook_strength: int = Field(ge=0, le=100, description="Does the opening actually stop a scroll?")
+    brand_fit: int = Field(ge=0, le=100, description="Fit with OUR brand voice and positioning (see brand context).")
+    replicability: int = Field(ge=0, le=100, description="Could we realistically produce this with our resources?")
+    evidence_strength: int = Field(
+        ge=0, le=100, description="How much of this analysis rests on visible evidence vs inference. Low is common and honest."
+    )
+    scoring_note: str = Field(description="One sentence on what dragged the scores down. Not a summary of strengths.")
+
+
+class CritiqueDraft(BaseModel):
+    """What the critic node returns: the case against, plus the judged numbers.
+
+    One call, not two — the scores are more honest coming from the node that
+    just enumerated the flaws, and it keeps the added cost to a single Flash call.
+    """
+
+    critique: Critique
+    scores: JudgedScores
+
+
+class Scorecard(BaseModel):
+    """Quantified read of the campaign — what the charts render.
+
+    Half the dimensions are computed in code (`computed: true`) from the bucket
+    registry, the trend verdict and memory similarity, so the headline number
+    is not purely a model's opinion.
+    """
+
+    relevance_to_us: int = Field(ge=0, le=100, description="Headline: how relevant this campaign is to our brand.")
+    dimensions: list[ScoreDimension] = Field(default_factory=list)
+    risk_index: int = Field(ge=0, le=100, default=0, description="Weighted severity of the critique's weaknesses.")
+    scoring_note: str = ""
+
+
+class CampaignReportV3(CampaignReportV2):
+    """Phase 6 report: the brief, plus the case against it and the numbers."""
+
+    schema_version: str = "v3"
+    critique: Critique | None = None
+    scorecard: Scorecard | None = None
+
+
 # --- Phase 4: Trend Radar ----------------------------------------------------
 
 
@@ -421,7 +577,7 @@ class AnalyzeResponse(BaseModel):
     """Envelope returned by POST /analyze."""
 
     report_id: str
-    report: CampaignReportV2
+    report: CampaignReportV3
     markdown: str
     usages: list[Usage]
     deduped: bool = False  # true when memory short-circuited to an existing report

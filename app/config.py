@@ -16,9 +16,14 @@ load_dotenv(PROJECT_ROOT / ".env")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_COMPOSER_MODEL = os.getenv("GEMINI_COMPOSER_MODEL", "gemini-2.5-pro")
 
-# Storage: local JSON store by default; set MONGODB_URI to use MongoDB.
+# Storage: local JSON store by default. Set MONGODB_URI for MongoDB, or
+# FIREBASE_CREDENTIALS (path to a service-account JSON) for Firestore.
+# STORE_BACKEND ("local" | "mongo" | "firebase") overrides auto-detection.
+STORE_BACKEND = os.getenv("STORE_BACKEND", "auto")
 MONGODB_URI = os.getenv("MONGODB_URI", "")
 MONGODB_DB = os.getenv("MONGODB_DB", "trend_agent")
+FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS", "")
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")
 
 # Vector memory: embedded local Qdrant by default (no Docker needed);
 # set QDRANT_URL (+ optional QDRANT_API_KEY) to use a server.
@@ -31,6 +36,9 @@ EMBED_DIM = int(os.getenv("EMBED_DIM", "768"))
 
 # Trend Radar (Phase 4): proactive scanning schedule (server-local time).
 RADAR_ENABLED = os.getenv("RADAR_ENABLED", "true").lower() in ("1", "true", "yes")
+# Crawl triage survivors for full text + page screenshot (Crawl4AI + Playwright).
+CRAWL_ENABLED = os.getenv("CRAWL_ENABLED", "true").lower() in ("1", "true", "yes")
+CRAWL_TIMEOUT_S = int(os.getenv("CRAWL_TIMEOUT_S", "30"))
 SCAN_HOUR = int(os.getenv("SCAN_HOUR", "7"))  # daily scan at 07:00
 DIGEST_WEEKDAY = os.getenv("DIGEST_WEEKDAY", "mon")  # weekly digest Monday...
 DIGEST_HOUR = int(os.getenv("DIGEST_HOUR", "8"))  # ...at 08:00

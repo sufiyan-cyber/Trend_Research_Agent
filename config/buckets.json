@@ -1,0 +1,32 @@
+{
+  "buckets": [
+    {
+      "id": "third-year-interns",
+      "name": "3rd-year students seeking internships",
+      "description": "Pre-final-year college students hunting for their first real internship; anxious about resumes and standing out.",
+      "pains": ["no experience to show", "everyone has the same resume", "don't know what skills matter"],
+      "channels": ["Instagram", "WhatsApp community", "LinkedIn"]
+    },
+    {
+      "id": "final-years",
+      "name": "Final-year students facing placements",
+      "description": "Students in placement season; high urgency, peer comparison pressure, deadline-driven decisions.",
+      "pains": ["placement pressure", "peers getting offers first", "fear of graduating without a job"],
+      "channels": ["WhatsApp community", "Instagram", "LinkedIn"]
+    },
+    {
+      "id": "switchers",
+      "name": "Working professionals switching into AI",
+      "description": "1-8 years experience, watching AI reshape their field; want a credible transition path without quitting their job.",
+      "pains": ["fear of becoming obsolete", "no time for long courses", "unsure which skills transfer"],
+      "channels": ["LinkedIn", "email"]
+    },
+    {
+      "id": "beginners",
+      "name": "Complete beginners",
+      "description": "No coding or AI background; curious but intimidated; need a low-friction, jargon-free entry point.",
+      "pains": ["everything sounds too technical", "don't know where to start", "afraid of looking stupid"],
+      "channels": ["Instagram", "WhatsApp community"]
+    }
+  ]
+}

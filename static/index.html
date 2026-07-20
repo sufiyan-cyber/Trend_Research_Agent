@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trend Research Agent — Review</title>
+<style>
+  :root{
+    --bg:#0b1220; --surface:#131c2e; --surface2:#1a2438; --border:#263145;
+    --text:#e8edf6; --muted:#9aa8bf; --accent:#6c8cff; --accent-press:#5577f0;
+    --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --info:#38bdf8;
+    --radius:10px; --gap:16px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  a{color:var(--accent)}
+  header{display:flex;align-items:center;gap:12px;padding:14px 24px;
+    border-bottom:1px solid var(--border);background:var(--surface)}
+  header svg{flex:none}
+  header h1{font-size:18px;margin:0;font-weight:600}
+  header .sub{color:var(--muted);font-size:13px}
+  main{display:grid;grid-template-columns:380px 1fr;gap:var(--gap);
+    padding:var(--gap) 24px;max-width:1400px;margin:0 auto}
+  @media(max-width:1023px){main{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:20px}
+  .card h2{margin:0 0 14px;font-size:15px;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.06em}
+  label{display:block;font-size:14px;color:var(--muted);margin:0 0 6px}
+  textarea{width:100%;min-height:110px;resize:vertical;background:var(--surface2);
+    border:1px solid var(--border);border-radius:8px;color:var(--text);
+    padding:10px 12px;font:inherit}
+  input[type=file]{width:100%;color:var(--muted);font-size:14px;padding:8px 0}
+  textarea:focus,button:focus-visible,.item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}
+  .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
+  button{cursor:pointer;font:inherit;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface2);color:var(--text);padding:11px 16px;min-height:44px}
+  button:hover{border-color:var(--accent)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .primary{background:var(--accent);border-color:var(--accent);color:#0b1220;font-weight:600;width:100%}
+  .primary:hover{background:var(--accent-press)}
+  .row{display:flex;gap:10px;align-items:center}
+  .status{margin-top:12px;font-size:14px;color:var(--muted);min-height:20px}
+  .status.err{color:var(--bad)}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--muted);
+    border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;
+    vertical-align:-2px;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){.spinner{animation-duration:2s}}
+  .item{display:block;width:100%;text-align:left;background:none;border:none;
+    border-bottom:1px solid var(--border);padding:10px 4px;border-radius:0;min-height:44px}
+  .item:hover{background:var(--surface2)}
+  .item .t{font-size:14px}
+  .item .m{font-size:12.5px;color:var(--muted)}
+  .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12.5px;
+    font-weight:600;border:1px solid}
+  .badge.new{color:var(--info);border-color:var(--info)}
+  .badge.rising{color:var(--ok);border-color:var(--ok)}
+  .badge.peaked{color:var(--warn);border-color:var(--warn)}
+  .badge.fading{color:var(--bad);border-color:var(--bad)}
+  .badge.approved{color:var(--ok);border-color:var(--ok)}
+  .badge.rejected{color:var(--bad);border-color:var(--bad)}
+  .badge.completed{color:var(--muted);border-color:var(--border)}
+  #report .sec{margin:0 0 18px}
+  #report h3{font-size:14px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.06em;margin:0 0 6px}
+  #report p{margin:0;font-size:15px}
+  .meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap}
+  .sw{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);
+    font-family:ui-monospace,Consolas,monospace}
+  .sw i{width:18px;height:18px;border-radius:4px;border:1px solid var(--border);display:inline-block}
+  .cites{margin:6px 0 0;padding-left:18px;font-size:13.5px}
+  .empty{color:var(--muted);text-align:center;padding:48px 12px}
+  .empty p{margin:6px 0 0;font-size:14px}
+  .divider{border:none;border-top:1px solid var(--border);margin:18px 0}
+  .review{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .review input{flex:1;min-width:180px;background:var(--surface2);border:1px solid var(--border);
+    border-radius:8px;color:var(--text);padding:10px 12px;font:inherit;min-height:44px}
+  .approve{border-color:var(--ok);color:var(--ok)}
+  .reject{border-color:var(--bad);color:var(--bad)}
+  .note{font-size:13px;color:var(--warn);margin:0 0 12px}
+
+  /* --- charts + critique --- */
+  .chartgrid{display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:start}
+  @media(max-width:720px){.chartgrid{grid-template-columns:1fr}}
+  .chartnote{color:var(--muted);font-size:12.5px;margin:6px 0 0;text-align:center}
+  .chartlegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;
+    font-size:12.5px;color:var(--muted);align-items:center}
+  .chartlegend i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:6px;
+    vertical-align:-1px}
+  .chartlegend .riskidx{margin-left:auto;font-variant-numeric:tabular-nums}
+  .tableview{margin-top:10px}
+  .tableview summary{color:var(--muted);font-size:12.5px;cursor:pointer;
+    padding:4px 0;min-height:24px}
+  .tableview summary:hover{color:var(--text)}
+  .tableview table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+  .tableview th,.tableview td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--border)}
+  .tableview th{color:var(--muted);font-weight:500}
+  .tableview td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .subhead{font-size:12.5px;color:var(--muted);margin:0 0 8px;
+    text-transform:uppercase;letter-spacing:.05em}
+
+  /* The critique is framed to be read, not skimmed past — it is the section
+     the rest of the report is not incentivised to write. */
+  .critique{border:1px solid var(--border);border-left:3px solid var(--warn);
+    border-radius:var(--radius);background:var(--surface2);padding:18px;margin:0 0 18px}
+  .critique h3{margin:0 0 4px;font-size:14px;color:var(--text);
+    text-transform:uppercase;letter-spacing:.06em}
+  .critique .lede{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .weak{border-top:1px solid var(--border);padding:12px 0 4px}
+  .weak:first-of-type{border-top:none;padding-top:4px}
+  .weak .issue{font-size:14.5px;margin:0 0 6px}
+  .weak .detail{font-size:13.5px;color:var(--muted);margin:4px 0 0}
+  .sev{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;
+    font-weight:700;border:1px solid;margin-right:8px;text-transform:uppercase;
+    letter-spacing:.04em;vertical-align:1px}
+  .sev.high{color:#ff9d9d;border-color:var(--bad)}
+  .sev.medium{color:var(--warn);border-color:var(--warn)}
+  .sev.low{color:var(--muted);border-color:var(--border)}
+  .cq{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--border)}
+  .cq h4{margin:0 0 4px;font-size:12.5px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .cq p{margin:0;font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6c8cff" stroke-width="2" aria-hidden="true">
+    <path d="M3 17l5-6 4 3 6-8"/><path d="M14 6h4v4"/>
+  </svg>
+  <div>
+    <h1>Trend Research Agent</h1>
+    <div class="sub">campaign deconstruction · trend verdict · audience fit</div>
+  </div>
+  <nav style="margin-left:auto;font-size:14px"><a href="/dashboard">Dashboard →</a></nav>
+</header>
+
+<main>
+  <div>
+    <section class="card" aria-labelledby="submit-h">
+      <h2 id="submit-h">Analyze a campaign</h2>
+      <form id="form">
+        <label for="text">Context / copy (what is this, where did you see it?)</label>
+        <textarea id="text" name="text" placeholder="e.g. This Blinkit ad was everywhere during the India–Pakistan match…"></textarea>
+        <label for="files" style="margin-top:12px">Screenshots / creatives (up to 10)</label>
+        <input id="files" name="images" type="file" accept="image/*" multiple>
+        <div class="thumbs" id="thumbs"></div>
+        <div style="margin-top:14px">
+          <button type="submit" class="primary" id="go">Analyze</button>
+        </div>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section class="card" style="margin-top:16px" aria-labelledby="recent-h">
+      <h2 id="recent-h">Recent reports</h2>
+      <div id="list"><div class="empty"><p>No reports yet — analyze something.</p></div></div>
+    </section>
+  </div>
+
+  <section class="card" id="reportCard" aria-labelledby="report-h">
+    <h2 id="report-h">Report</h2>
+    <div id="report">
+      <div class="empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3a4a66" stroke-width="1.5" aria-hidden="true" style="margin:auto;display:block">
+          <path d="M3 17l5-6 4 3 6-8"/><path d="M14 6h4v4"/>
+        </svg>
+        <p>Submit a campaign (or pick a recent report) to see the full deconstruction here.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import {relevanceMeter,scoreBars,lifecycleChart,riskBar,paletteDonut} from '/static/charts.js';
+
+const $=s=>document.querySelector(s);
+let currentId=null, timer=null;
+
+function esc(s){const d=document.createElement('div');d.textContent=s??'';return d.innerHTML}
+
+$('#files').addEventListener('change',e=>{
+  const t=$('#thumbs');t.innerHTML='';
+  [...e.target.files].slice(0,10).forEach(f=>{
+    const img=document.createElement('img');img.alt=f.name;
+    img.src=URL.createObjectURL(f);t.appendChild(img);
+  });
+});
+
+async function loadList(){
+  try{
+    const r=await fetch('/reports');if(!r.ok)return;
+    const items=await r.json();
+    const box=$('#list');
+    if(!items.length){box.innerHTML='<div class="empty"><p>No reports yet — analyze something.</p></div>';return}
+    box.innerHTML='';
+    items.forEach(it=>{
+      const b=document.createElement('button');b.type='button';b.className='item';
+      b.innerHTML=`<div class="t">${esc(it.primary_play||'(analysis)')} ${it.trend_verdict?`<span class="badge ${esc(it.trend_verdict)}">${esc(it.trend_verdict)}</span>`:''} <span class="badge ${esc(it.status)}">${esc(it.status)}</span></div>
+        <div class="m">${esc(it.report_id)} · ${new Date(it.created_at).toLocaleString()}${it.audience_bucket?' · '+esc(it.audience_bucket):''}</div>`;
+      b.addEventListener('click',()=>openReport(it.report_id));
+      box.appendChild(b);
+    });
+  }catch(_){}
+}
+
+function sec(title,body){return body?`<div class="sec"><h3>${title}</h3><p>${esc(body)}</p></div>`:''}
+
+function cq(title,body){return body?`<div class="cq"><h4>${title}</h4><p>${esc(body)}</p></div>`:''}
+
+/* The negative section. Weaknesses lead, strongest severity first — a critique
+   the reader has to scroll to find is a critique that does not do its job. */
+function critiqueHtml(cr){
+  if(!cr)return'';
+  const rank={high:0,medium:1,low:2};
+  const ws=[...(cr.weaknesses||[])].sort((a,b)=>(rank[a.severity]??3)-(rank[b.severity]??3));
+  return `<div class="critique">
+    <h3>The case against</h3>
+    <p class="lede">Written by a separate adversarial pass that did not author the analysis above.</p>
+    <div id="riskChart"></div>
+    ${ws.map(w=>`<div class="weak">
+      <p class="issue"><span class="sev ${esc(w.severity)}">${esc(w.severity)}</span>${esc(w.issue)}</p>
+      <p class="detail"><em>Evidence:</em> ${esc(w.evidence)}</p>
+      <p class="detail"><em>Mitigation:</em> ${esc(w.mitigation)}</p>
+    </div>`).join('')}
+    ${cq('Why it might not have worked',cr.why_it_might_not_work)}
+    ${cq('Risk if we copy it',cr.risk_if_we_copy_it)}
+    ${cq('Brand safety',cr.brand_safety_flag)}
+    ${cq('Survivorship check',cr.survivorship_check)}
+    ${cq('What we could not verify',cr.what_we_could_not_verify)}
+    <div class="cq"><h4>Confidence in the positive read</h4>
+      <p><span class="badge ${cr.confidence_in_positive_read==='high'?'approved':cr.confidence_in_positive_read==='low'?'rejected':'peaked'}">${esc(cr.confidence_in_positive_read)}</span></p></div>
+  </div>`;
+}
+
+function scorecardHtml(sc){
+  if(!sc)return'';
+  return `<div class="sec">
+    <h3>Scorecard</h3>
+    <div class="chartgrid">
+      <div id="relMeter"></div>
+      <div><p class="subhead">By dimension</p><div id="scoreBars"></div></div>
+    </div>
+  </div>`;
+}
+
+function renderReport(id,rep,status,reviewComment,deduped){
+  currentId=id;
+  const core=rep.core||{}, tr=rep.trend, au=rep.audience, sc=rep.scorecard, cr=rep.critique;
+  let h='';
+  if(deduped)h+=`<p class="note">Duplicate input — returning the existing report (no re-analysis, no extra cost).</p>`;
+  h+=`<div class="meta" style="margin-bottom:14px">${esc(id)} · status: <span class="badge ${esc(status)}">${esc(status)}</span>${reviewComment?' · note: '+esc(reviewComment):''}</div>`;
+  h+=scorecardHtml(sc);
+  if(tr)h+=`<div class="sec"><h3>Trend verdict</h3>
+    <p><span class="badge ${esc(tr.verdict)}">${esc(tr.verdict)}</span>
+    <span class="meta"> confidence: ${esc(tr.confidence)}</span></p>
+    <p style="margin-top:6px">${esc(tr.reasoning)}</p>
+    <p style="margin-top:6px" class="meta">Memory: ${esc(tr.memory_frequency)}</p>
+    <p class="meta">Market: ${esc(tr.market_signal)}</p>
+    ${tr.citations?.length?`<ul class="cites">${tr.citations.map(c=>`<li><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.title||c.url)}</a></li>`).join('')}</ul>`:''}
+    <p class="subhead" style="margin-top:16px">Where this play sits in its lifecycle</p>
+    <div id="lifeChart"></div>
+  </div>`;
+  if(au)h+=`<div class="sec"><h3>Audience recommendation</h3>
+    <p><strong>${esc(au.bucket_name)}</strong></p>
+    <p style="margin-top:6px"><em>Angle:</em> ${esc(au.angle)}</p>
+    <p style="margin-top:6px">${esc(au.fit_reasoning)}</p>
+    <p style="margin-top:6px"><em>What to make:</em> ${esc(au.content_suggestion)}</p>
+  </div><hr class="divider">`;
+  h+=sec('Campaign idea',core.campaign_idea)+sec('How it was run',core.how_it_was_run)
+    +sec('The hook',core.hook)+sec('Emotional trigger',core.emotional_trigger)
+    +sec('Visual notes',core.visual_notes)+sec('Why it worked',core.why_it_worked)
+    +sec('Takeaway for us',core.takeaway_for_us)+sec('Seen before',core.seen_before);
+  h+=critiqueHtml(cr);
+  if(rep.neighbors?.length)h+=`<div class="sec"><h3>Similar past analyses</h3><p class="meta">${rep.neighbors.map(n=>`${esc(n.report_id)} (${esc(String(n.similarity))})`).join(' · ')}</p></div>`;
+  if(rep.palette?.length)h+=`<div class="sec"><h3>Extracted palette</h3>
+    <div class="chartgrid"><div id="paletteChart"></div>
+    <div class="swatches">${rep.palette.map(c=>`<span class="sw"><i style="background:${esc(c.hex)}"></i>${esc(c.hex)} ${esc(String(c.coverage_pct))}%</span>`).join('')}</div></div></div>`;
+  h+=`<hr class="divider"><div class="review">
+    <input id="comment" placeholder="Review note (optional)" aria-label="Review note">
+    <button type="button" class="approve" id="btnApprove">Approve</button>
+    <button type="button" class="reject" id="btnReject">Reject</button>
+  </div><div class="status" id="revStatus" role="status" aria-live="polite"></div>`;
+  $('#report').innerHTML=h;
+
+  // Charts mount after the markup exists.
+  if(sc){
+    relevanceMeter($('#relMeter'),sc.relevance_to_us,sc.scoring_note);
+    scoreBars($('#scoreBars'),sc.dimensions||[]);
+  }
+  if(cr){
+    const counts={high:0,medium:0,low:0};
+    (cr.weaknesses||[]).forEach(w=>{counts[w.severity]=(counts[w.severity]||0)+1});
+    riskBar($('#riskChart'),counts,sc?sc.risk_index:null);
+  }
+  if(rep.palette?.length)paletteDonut($('#paletteChart'),rep.palette);
+  if(tr&&rep.strategy?.primary_play)drawLifecycle(rep.strategy.primary_play);
+
+  $('#btnApprove').addEventListener('click',()=>review('approved'));
+  $('#btnReject').addEventListener('click',()=>review('rejected'));
+  $('#reportCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* The play's own lifecycle history — the report-level "market trend" view.
+   404 simply means this is the first observation of the play. */
+async function drawLifecycle(play){
+  const host=$('#lifeChart');
+  if(!host)return;
+  try{
+    const r=await fetch('/trends/'+encodeURIComponent(play));
+    if(!r.ok){host.innerHTML='<p class="chartnote">First observation of this play — no lifecycle history yet.</p>';return}
+    lifecycleChart(host,await r.json());
+  }catch(_){host.innerHTML=''}
+}
+
+async function openReport(id){
+  const r=await fetch('/report/'+encodeURIComponent(id));
+  if(!r.ok)return;
+  const rec=await r.json();
+  renderReport(rec.report_id,rec.report,rec.status||'completed',rec.review_comment,false);
+}
+
+async function review(decision){
+  const s=$('#revStatus');s.textContent='Saving…';
+  const r=await fetch('/report/'+encodeURIComponent(currentId)+'/review',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({decision,comment:$('#comment').value||''})});
+  if(r.ok){s.textContent='Saved — marked '+decision+'.';loadList();openReport(currentId);}
+  else{s.textContent='Could not save review (HTTP '+r.status+').';s.className='status err'}
+}
+
+$('#form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const text=$('#text').value.trim(), files=[...$('#files').files];
+  const st=$('#status'), btn=$('#go');
+  if(!text&&!files.length){st.className='status err';st.textContent='Add some context text or at least one image.';return}
+  const fd=new FormData();fd.append('text',text);
+  files.slice(0,10).forEach(f=>fd.append('images',f));
+  btn.disabled=true;st.className='status';
+  const t0=Date.now();
+  st.innerHTML='<span class="spinner" aria-hidden="true"></span>Analyzing — specialists, trend check, audience fit… <span id="elapsed">0s</span>';
+  timer=setInterval(()=>{const el=$('#elapsed');if(el)el.textContent=Math.round((Date.now()-t0)/1000)+'s'},1000);
+  try{
+    const r=await fetch('/analyze/form',{method:'POST',body:fd});
+    const body=await r.json();
+    if(!r.ok)throw new Error(body.detail||('HTTP '+r.status));
+    st.textContent='Done in '+Math.round((Date.now()-t0)/1000)+'s.';
+    renderReport(body.report_id,body.report,'completed','',body.deduped);
+    loadList();
+  }catch(err){st.className='status err';st.textContent='Analysis failed: '+err.message+' — fix and press Analyze to retry.'}
+  finally{btn.disabled=false;clearInterval(timer)}
+});
+
+loadList();
+</script>
+</body>
+</html>

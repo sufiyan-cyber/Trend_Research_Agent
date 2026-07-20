@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trend Research Agent — Dashboard</title>
+<style>
+  :root{
+    --bg:#0b1220; --surface:#131c2e; --surface2:#1a2438; --border:#263145;
+    --text:#e8edf6; --muted:#9aa8bf; --accent:#6c8cff;
+    --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --info:#38bdf8;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  a{color:var(--accent)}
+  header{display:flex;align-items:center;gap:12px;padding:14px 24px;
+    border-bottom:1px solid var(--border);background:var(--surface)}
+  header h1{font-size:18px;margin:0;font-weight:600}
+  header .sub{color:var(--muted);font-size:13px}
+  header nav{margin-left:auto;font-size:14px}
+  main{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+    gap:16px;padding:16px 24px;max-width:1500px;margin:0 auto}
+  .card{background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:20px;min-width:0}
+  .card.wide{grid-column:1/-1}
+  .card h2{margin:0 0 14px;font-size:14px;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.06em}
+  .badge{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;
+    font-weight:600;border:1px solid}
+  .badge.new{color:var(--info);border-color:var(--info)}
+  .badge.rising{color:var(--ok);border-color:var(--ok)}
+  .badge.peaked{color:var(--warn);border-color:var(--warn)}
+  .badge.fading{color:var(--bad);border-color:var(--bad)}
+  .muted{color:var(--muted);font-size:13.5px}
+  .mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .row{border-bottom:1px solid var(--border);padding:10px 0}
+  .row:last-child{border-bottom:none}
+  .empty{color:var(--muted);padding:24px 8px;text-align:center;font-size:14px}
+  .dots{display:inline-flex;gap:3px;vertical-align:middle;margin-left:8px}
+  .dots i{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .dots i.new{background:var(--info)} .dots i.rising{background:var(--ok)}
+  .dots i.peaked{background:var(--warn)} .dots i.fading{background:var(--bad)}
+  .askrow{display:flex;gap:10px}
+  .askrow input{flex:1;background:var(--surface2);border:1px solid var(--border);
+    border-radius:8px;color:var(--text);padding:11px 12px;font:inherit;min-height:44px}
+  button{cursor:pointer;font:inherit;border-radius:8px;border:1px solid var(--accent);
+    background:var(--accent);color:#0b1220;font-weight:600;padding:11px 18px;min-height:44px}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:500}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .answer{background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+    padding:14px;margin-top:12px;font-size:15px;display:none}
+  #digestBody h3{font-size:14px;margin:12px 0 4px}
+
+  /* --- charts --- */
+  .chartnote{color:var(--muted);font-size:12.5px;margin:6px 0 0}
+  .chartlegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;
+    font-size:12.5px;color:var(--muted);align-items:center}
+  .chartlegend i{width:9px;height:9px;border-radius:2px;display:inline-block;
+    margin-right:6px;vertical-align:-1px}
+  .chartlegend .riskidx{margin-left:auto;font-variant-numeric:tabular-nums}
+  .tableview{margin-top:10px}
+  .tableview summary{color:var(--muted);font-size:12.5px;cursor:pointer;
+    padding:4px 0;min-height:24px}
+  .tableview summary:hover{color:var(--text)}
+  .tableview table{margin-top:6px;font-size:12.5px}
+  .tableview td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .kpis{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:6px}
+  .kpi .v{font-size:30px;font-weight:600;line-height:1.15}
+  .kpi .l{font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6c8cff" stroke-width="2" aria-hidden="true">
+    <path d="M3 17l5-6 4 3 6-8"/><path d="M14 6h4v4"/>
+  </svg>
+  <div>
+    <h1>Trend Dashboard</h1>
+    <div class="sub">what's moving, who's moving it, what we should do</div>
+  </div>
+  <nav><a href="/">← Review &amp; analyze</a></nav>
+</header>
+
+<main>
+  <section class="card wide" aria-labelledby="ask-h">
+    <h2 id="ask-h">Ask the agent</h2>
+    <div class="askrow">
+      <input id="q" placeholder='e.g. "which hooks are working on students this quarter?"' aria-label="Question">
+      <button id="askBtn">Ask</button>
+    </div>
+    <div class="answer" id="answer" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card wide" aria-labelledby="mix-h">
+    <h2 id="mix-h">Market trend — lifecycle stages observed per week</h2>
+    <div class="kpis" id="kpis"></div>
+    <div id="verdictMix"><div class="empty">No observations yet.</div></div>
+  </section>
+
+  <section class="card" aria-labelledby="plays-h">
+    <h2 id="plays-h">Most-seen plays</h2>
+    <div id="playsChart"><div class="empty">No analyses yet.</div></div>
+  </section>
+
+  <section class="card" aria-labelledby="rel-h">
+    <h2 id="rel-h">How relevant our findings are to us</h2>
+    <div id="relChart"><div class="empty">No scored reports yet.</div></div>
+  </section>
+
+  <section class="card" aria-labelledby="risk-h">
+    <h2 id="risk-h">Risk found across campaigns</h2>
+    <div id="riskChart"><div class="empty">No critiques yet.</div></div>
+    <p class="muted" id="riskNote" style="margin-bottom:0"></p>
+  </section>
+
+  <section class="card" aria-labelledby="emo-h">
+    <h2 id="emo-h">Emotional triggers in play</h2>
+    <div id="emoChart"><div class="empty">No analyses yet.</div></div>
+  </section>
+
+  <section class="card" aria-labelledby="tr-h">
+    <h2 id="tr-h">Trend lifecycles</h2>
+    <div id="trends"><div class="empty">No lifecycle data yet — analyses build timelines automatically.</div></div>
+  </section>
+
+  <section class="card" aria-labelledby="al-h">
+    <h2 id="al-h">Rising-trend alerts</h2>
+    <div id="alerts"><div class="empty">No alerts yet. Early is the entire point — they appear the moment a pattern turns rising.</div></div>
+  </section>
+
+  <section class="card" aria-labelledby="mm-h">
+    <h2 id="mm-h">Market map</h2>
+    <div id="market"><div class="empty">No map yet — POST /radar/market-map/refresh (or wait for the monthly job).</div></div>
+  </section>
+
+  <section class="card wide" aria-labelledby="dg-h">
+    <h2 id="dg-h">Latest weekly digest</h2>
+    <div id="digestBody"><div class="empty">No digest yet — POST /radar/digest (or wait for Monday).</div></div>
+  </section>
+
+  <section class="card wide" aria-labelledby="cost-h">
+    <h2 id="cost-h">Cost &amp; radar efficiency</h2>
+    <div id="costs" class="muted">Loading…</div>
+  </section>
+</main>
+
+<script type="module">
+import {verdictMix,rankedBars,histogram,riskBar} from '/static/charts.js';
+
+const $=s=>document.querySelector(s);
+const esc=s=>{const d=document.createElement('div');d.textContent=s??'';return d.innerHTML};
+const j=async u=>{const r=await fetch(u);return r.ok?r.json():null};
+
+(async()=>{
+  const an=await j('/analytics');
+  if(an){
+    const kp=[
+      {v:an.reports_total,l:'reports analyzed'},
+      {v:an.relevance.mean===null?'—':an.relevance.mean+'%',l:'mean relevance to us'},
+      {v:an.risk.mean_risk_index===null?'—':an.risk.mean_risk_index,l:'mean risk index'},
+      {v:an.risk.total_weaknesses,l:'weaknesses raised'},
+    ];
+    $('#kpis').innerHTML=kp.map(k=>`<div class="kpi"><div class="v">${esc(String(k.v))}</div><div class="l">${esc(k.l)}</div></div>`).join('');
+
+    if(an.verdict_mix.total)verdictMix($('#verdictMix'),an.verdict_mix);
+    if(an.plays.items.length)rankedBars($('#playsChart'),an.plays.items,{
+      label:'Analyses per play',headers:['Play','Analyses'],tableCaption:'View plays as table'});
+    if(an.relevance.scored_reports)histogram($('#relChart'),an.relevance,{
+      label:'Reports by relevance band',headers:['Relevance band','Reports'],
+      tableCaption:'View relevance bands as table'});
+    if(an.risk.total_weaknesses){
+      const [high,medium,low]=an.risk.values;
+      riskBar($('#riskChart'),{high,medium,low},an.risk.mean_risk_index);
+      $('#riskNote').textContent=
+        `${an.risk.total_weaknesses} weaknesses across ${an.risk.critiqued_reports} critiqued report(s). `+
+        `A corpus with no high-severity findings usually means the critic has gone soft, not that the campaigns are flawless.`;
+    }
+    if(an.emotions.items.length)rankedBars($('#emoChart'),an.emotions.items,{
+      label:'Campaigns per dominant emotion',labelW:130,headers:['Emotion','Campaigns'],
+      tableCaption:'View emotions as table'});
+  }
+
+  const trends=await j('/trends');
+  if(trends&&trends.length){
+    $('#trends').innerHTML=trends.map(t=>`<div class="row">
+      <div><strong>${esc(t.play)}</strong> <span class="badge ${esc(t.current_verdict)}">${esc(t.current_verdict)}</span>
+      <span class="dots" title="observation history">${t.events.slice(-12).map(e=>`<i class="${esc(e.verdict)}"></i>`).join('')}</span></div>
+      <div class="muted mono">first seen ${esc(t.first_seen.slice(0,10))} · ${t.observations} obs${t.early_call_days?` · called rising ${t.early_call_days}d before peak`:''}</div>
+    </div>`).join('');
+  }
+
+  const alerts=await j('/alerts');
+  if(alerts&&alerts.length){
+    $('#alerts').innerHTML=alerts.slice(0,8).map(a=>`<div class="row">
+      <div>${esc(a.message)}</div>
+      <div class="muted mono">${esc(a.created_at.slice(0,10))} · <a href="/report/${esc(a.report_id)}?format=markdown">${esc(a.report_id)}</a></div>
+    </div>`).join('');
+  }
+
+  const mm=await j('/market-map');
+  if(mm&&mm.players&&mm.players.length){
+    $('#market').innerHTML=mm.players.map(p=>`<div class="row">
+      <div><strong>${esc(p.name)}</strong> <span class="muted mono">${p.campaigns} campaign(s) · last ${esc((p.last_seen||'').slice(0,10))}</span></div>
+      <div class="muted">${esc(p.profile||'')}</div>
+      <div class="muted mono">plays: ${esc((p.top_plays||[]).join(', '))}</div>
+    </div>`).join('')
+    +(mm.tracked_but_unseen&&mm.tracked_but_unseen.length?`<div class="muted" style="margin-top:8px">Tracked, nothing analyzed yet: ${esc(mm.tracked_but_unseen.join(', '))}</div>`:'');
+  }
+
+  const dg=await j('/digest/latest');
+  if(dg){
+    const d=dg.digest;
+    let h=`<p><strong>${esc(d.headline)}</strong> <span class="muted mono">(${esc(dg.generated_at.slice(0,10))}, ${dg.week_items} analyses)</span></p><p>${esc(d.week_summary)}</p>`;
+    if(d.rising.length)h+='<h3>Rising</h3>'+d.rising.map(t=>`<div class="row"><strong>${esc(t.pattern)}</strong> — ${esc(t.evidence)}<div class="muted">Aim at ${esc(t.recommended_bucket)}: ${esc(t.suggested_move)}</div></div>`).join('');
+    if(d.watch.length)h+='<h3>Watch / avoid</h3>'+d.watch.map(t=>`<div class="row"><strong>${esc(t.pattern)}</strong> — ${esc(t.evidence)}</div>`).join('');
+    if(d.notable_campaigns.length)h+='<h3>Notable</h3>'+d.notable_campaigns.map(n=>`<div class="row"><strong>${esc(n.title)}</strong>${n.reference?` <span class="mono muted">${esc(n.reference)}</span>`:''} — ${esc(n.why_notable)}</div>`).join('');
+    $('#digestBody').innerHTML=h;
+  }
+
+  const c=await j('/costs');
+  if(c){
+    const rows=Object.entries(c.tokens_by_node).map(([n,v])=>`<tr><td>${esc(n)}</td><td class="num">${v.calls}</td><td class="num">${v.input_tokens.toLocaleString()}</td><td class="num">${v.output_tokens.toLocaleString()}</td><td class="num">${v.total_tokens.toLocaleString()}</td></tr>`).join('');
+    const fr=c.radar.filter_rate;
+    $('#costs').innerHTML=`<table aria-label="Token usage by node"><thead><tr><th>node</th><th>calls</th><th>in</th><th>out</th><th>total</th></tr></thead><tbody>${rows||'<tr><td colspan=5 class="muted">no reports yet</td></tr>'}</tbody></table>
+    <p class="mono" style="margin-bottom:0">reports: ${c.reports} · total tokens: ${c.total_tokens.toLocaleString()} · radar filter rate: ${fr===null?'n/a':(fr*100).toFixed(0)+'%'} (target ≥80%)</p>`;
+  }
+})();
+
+async function doAsk(){
+  const q=$('#q').value.trim();if(q.length<3)return;
+  const btn=$('#askBtn'),box=$('#answer');
+  btn.disabled=true;box.style.display='block';box.textContent='Thinking…';
+  try{
+    const r=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+    const b=await r.json();
+    if(!r.ok)throw new Error(b.detail||('HTTP '+r.status));
+    box.innerHTML=`${esc(b.answer)}<div class="muted mono" style="margin-top:8px">confidence: ${esc(b.confidence)}${b.sources.length?' · sources: '+b.sources.map(esc).join(', '):''}</div>`;
+  }catch(e){box.textContent='Could not answer: '+e.message}
+  finally{btn.disabled=false}
+}
+$('#askBtn').addEventListener('click',doAsk);
+$('#q').addEventListener('keydown',e=>{if(e.key==='Enter')doAsk()});
+</script>
+</body>
+</html>

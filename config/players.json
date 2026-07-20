@@ -1,0 +1,14 @@
+{
+  "players": [
+    { "id": "blinkit", "name": "Blinkit", "aliases": ["blinkit"] },
+    { "id": "zomato", "name": "Zomato", "aliases": ["zomato"] },
+    { "id": "swiggy", "name": "Swiggy", "aliases": ["swiggy"] },
+    { "id": "zepto", "name": "Zepto", "aliases": ["zepto"] },
+    { "id": "cred", "name": "CRED", "aliases": ["cred"] },
+    { "id": "duolingo", "name": "Duolingo", "aliases": ["duolingo", "duo owl"] },
+    { "id": "physics-wallah", "name": "Physics Wallah", "aliases": ["physics wallah", "physicswallah", "pw"] },
+    { "id": "unacademy", "name": "Unacademy", "aliases": ["unacademy"] },
+    { "id": "upgrad", "name": "upGrad", "aliases": ["upgrad"] },
+    { "id": "scaler", "name": "Scaler", "aliases": ["scaler"] }
+  ]
+}

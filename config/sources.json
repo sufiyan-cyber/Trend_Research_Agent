@@ -1,0 +1,44 @@
+{
+  "sources": [
+    {
+      "id": "marketing-dive",
+      "type": "rss",
+      "name": "Marketing Dive",
+      "url": "https://www.marketingdive.com/feeds/news/"
+    },
+    {
+      "id": "social-media-today",
+      "type": "rss",
+      "name": "Social Media Today",
+      "url": "https://www.socialmediatoday.com/feeds/news/"
+    },
+    {
+      "id": "martech",
+      "type": "rss",
+      "name": "MarTech",
+      "url": "https://martech.org/feed/"
+    },
+    {
+      "id": "afaqs",
+      "type": "rss",
+      "name": "afaqs (India)",
+      "url": "https://www.afaqs.com/rss/latest-stories"
+    },
+    {
+      "id": "gdelt-india-campaigns",
+      "type": "gdelt",
+      "name": "GDELT: Indian marketing campaigns",
+      "query": "\"marketing campaign\" (India OR Indian) (viral OR launch OR ad)",
+      "timespan": "3d",
+      "max_records": 25
+    },
+    {
+      "id": "gdelt-edtech",
+      "type": "gdelt",
+      "name": "GDELT: edtech & upskilling marketing",
+      "query": "(edtech OR upskilling) (campaign OR advertising OR \"social media\")",
+      "timespan": "3d",
+      "max_records": 25
+    }
+  ]
+}

@@ -73,6 +73,7 @@ class MemoryIndex:
         source: str = "user",
         extra_payload: dict | None = None,
     ) -> None:
+        from app.emotions import normalize
         from app.palette import palette_family
 
         summary = analysis_summary_text(report)
@@ -92,7 +93,11 @@ class MemoryIndex:
             "summary": summary,
             "primary_play": report.strategy.primary_play,
             "secondary_play": report.strategy.secondary_play,
-            "emotion": report.hook_copy.dominant_emotion,
+            # Canonical form so analytics never fragments across spellings
+            # ("insecurity" / "FOMO" / "fear of missing out"); raw kept alongside.
+            "emotion": normalize(report.hook_copy.dominant_emotion)[0],
+            "emotion_valence": normalize(report.hook_copy.dominant_emotion)[1],
+            "emotion_raw": report.hook_copy.dominant_emotion,
             "palette_family": palette_family(report.palette),
             "image_hashes": image_hashes,
             "input_text": input_text,

@@ -1,8 +1,9 @@
 """Render reports as clean markdown."""
 
-from app.schemas import CampaignReport, CampaignReportV1, Critique, Scorecard
+from app.schemas import CampaignReport, CampaignReportV1, Critique, EmotionProfile, Scorecard, TriggerPlay
 
 _SEVERITY_MARK = {"high": "🔴 HIGH", "medium": "🟠 MEDIUM", "low": "🟡 LOW"}
+_FIT_MARK = {"strong": "✅ STRONG", "stretch": "🟡 STRETCH", "avoid": "⛔ AVOID"}
 
 _CORE_SECTIONS: list[tuple[str, str]] = [
     ("campaign_idea", "The Campaign Idea"),
@@ -67,6 +68,30 @@ def _critique_markdown(cr: Critique | None) -> str:
     return "\n".join(out)
 
 
+def _emotion_markdown(em: EmotionProfile | None, playbook: list[TriggerPlay]) -> str:
+    """The trigger and how to pull it per bucket — the transfer half of the analysis."""
+    if em is None and not playbook:
+        return ""
+    out = []
+    if em is not None:
+        out.append(f"## Emotional Trigger: {em.primary or em.raw} ({em.valence})\n")
+        if em.trigger_element:
+            out.append(f"**Fired by:** {em.trigger_element}")
+        if em.raw and em.raw.lower() != em.primary:
+            out.append(f"*(specialist wrote: \"{em.raw}\")*")
+    if playbook:
+        out.append("### How to pull this trigger in our buckets\n")
+        for p in playbook:
+            out.append(f"**{_FIT_MARK.get(p.fit, p.fit.upper())} — {p.bucket_name}**")
+            out.append(f"- {p.how_to_fire}")
+            if p.example_hook:
+                out.append(f"- *Hook:* \"{p.example_hook}\"")
+            if p.caution:
+                out.append(f"- ⚠️ *Caution:* {p.caution}")
+            out.append("")
+    return "\n".join(out).rstrip()
+
+
 def report_to_markdown(report: CampaignReportV1) -> str:
     parts = [core_to_markdown(report.core)]
 
@@ -97,6 +122,7 @@ def report_to_markdown(report: CampaignReportV1) -> str:
     parts.extend(
         block
         for block in (
+            _emotion_markdown(getattr(report, "emotion", None), getattr(report, "trigger_playbook", [])),
             _scorecard_markdown(getattr(report, "scorecard", None)),
             _critique_markdown(getattr(report, "critique", None)),
         )

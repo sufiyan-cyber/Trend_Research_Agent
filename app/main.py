@@ -27,7 +27,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.buckets import load_buckets, save_buckets
@@ -81,6 +81,53 @@ MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB per image
 
 
 app.mount("/static", StaticFiles(directory=PROJECT_ROOT / "static"), name="static")
+
+
+@app.middleware("http")
+async def no_stale_ui(request, call_next):
+    """Nothing this app serves may go stale in the browser.
+
+    /static/*  -> no-cache: revalidate every load; ETag 304s keep it cheap.
+    everything else (documents + JSON APIs) -> no-store:
+      - JSON: report lists / analytics must always be fetched live.
+      - documents: no-store also disables the back/forward cache, which
+        otherwise revives a frozen page snapshot with old data on back/forward
+        navigation (the "dashboard stuck at 2 reports until refresh" bug).
+    """
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    else:
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+# Kill switch for a stale service worker left over from a previous project on
+# this port. This app never registered one, but the browser keeps polling
+# /sw.js for the old registration and, until now, got a 404 that left the rogue
+# worker alive and serving cached pages. Answer that poll with a service worker
+# that clears every cache, unregisters itself, and reloads its clients — so the
+# leftover worker self-destructs on the browser's next update check, no hard
+# refresh required. FastAPI ignores the ?v= query, so this catches /sw.js too.
+_KILL_SW = """
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    } catch (_) {}
+    await self.registration.unregister();
+    const clients = await self.clients.matchAll({ type: 'window' });
+    clients.forEach((c) => c.navigate(c.url));
+  })());
+});
+""".strip()
+
+
+@app.get("/sw.js", include_in_schema=False)
+async def kill_service_worker():
+    return Response(_KILL_SW, media_type="application/javascript", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/healthz")

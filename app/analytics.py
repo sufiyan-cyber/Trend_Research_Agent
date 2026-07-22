@@ -128,14 +128,32 @@ def risk_profile(reports: list[dict]) -> dict:
 
 
 def emotion_mix(payloads: list[dict], top: int = 6) -> dict:
-    """Which emotional triggers dominate the campaigns we see."""
-    counts = Counter((p.get("emotion") or "(none)").lower() for p in payloads)
+    """Which emotional triggers dominate the campaigns we see, with valence.
+
+    Payloads are normalized again here (not just trusted) so pre-Phase-7
+    records with raw spellings fold into the same counts as new ones.
+    """
+    from app.emotions import normalize
+
+    counts: Counter = Counter()
+    valences: dict[str, str] = {}
+    valence_totals: Counter = Counter()
+    for p in payloads:
+        canon, valence = normalize(p.get("emotion") or "")
+        canon = canon or "(none)"
+        counts[canon] += 1
+        valences[canon] = valence
+        valence_totals[valence] += 1
+
     items = counts.most_common(top)
     tail = sum(n for _, n in counts.most_common()[top:])
-    out = [{"label": e, "value": n} for e, n in items]
+    out = [{"label": e, "value": n, "valence": valences[e]} for e, n in items]
     if tail:
-        out.append({"label": "other", "value": tail})
-    return {"items": out}
+        out.append({"label": "other", "value": tail, "valence": "unclassified"})
+    return {
+        "items": out,
+        "valence_totals": {k: valence_totals[k] for k in ("positive", "negative", "desire", "unclassified") if valence_totals[k]},
+    }
 
 
 def build_analytics(reports: list[dict], payloads: list[dict], events: list[dict]) -> dict:

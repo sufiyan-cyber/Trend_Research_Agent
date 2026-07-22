@@ -210,6 +210,67 @@ class AudienceFit(BaseModel):
     secondary_bucket_id: str | None = Field(default=None, description="Optional second-best bucket id, else null.")
 
 
+class TriggerPlay(BaseModel):
+    """How to pull this campaign's emotional trigger in ONE of our buckets.
+
+    One entry per registry bucket, honestly rated — `avoid` is a legitimate
+    answer and the schema forces the strategist to say it per bucket instead
+    of silently matching everything to everything.
+    """
+
+    bucket_id: str = Field(description="id from the provided registry, copied exactly.")
+    bucket_name: str = Field(description="name of that bucket, copied from the registry.")
+    fit: Literal["strong", "stretch", "avoid"] = Field(
+        description=(
+            "strong: the trigger maps directly onto this bucket's pains. "
+            "stretch: workable with reframing — say what reframing. "
+            "avoid: firing this trigger at this bucket would misfire or harm."
+        )
+    )
+    how_to_fire: str = Field(
+        description=(
+            "How the SAME trigger fires for this bucket: which of their pains it "
+            "hooks into and through which of their channels. For 'avoid', why it "
+            "misfires here instead."
+        )
+    )
+    example_hook: str = Field(
+        description="A working one-line hook for this bucket firing this trigger; empty string for 'avoid'."
+    )
+    caution: str = Field(
+        default="",
+        description=(
+            "Ethical/brand-safety line for using this trigger on this bucket — "
+            "mandatory when the emotion is negative-valence (anxiety, shame, "
+            "fear...) aimed at stressed students; empty if genuinely none."
+        ),
+    )
+
+
+class AudienceDraft(BaseModel):
+    """Audience node output: best-fit bucket + the per-bucket trigger playbook."""
+
+    fit: AudienceFit
+    trigger_playbook: list[TriggerPlay] = Field(
+        min_length=1,
+        max_length=6,
+        description="One entry per bucket in the provided registry — cover every bucket, no skipping.",
+    )
+
+
+class EmotionProfile(BaseModel):
+    """Normalized emotion read, built in code from the hook specialist's output.
+
+    `raw` preserves what the specialist actually wrote; `primary`/`valence`
+    are what analytics and memory aggregate on (see app/emotions.py).
+    """
+
+    primary: str
+    valence: Literal["positive", "negative", "desire", "unclassified"]
+    raw: str = ""
+    trigger_element: str = ""
+
+
 class CampaignReportV2(CampaignReportV1):
     """Phase 3 report: deconstruction + trend verdict + audience fit = campaign brief."""
 
@@ -370,6 +431,9 @@ class CampaignReportV3(CampaignReportV2):
     schema_version: str = "v3"
     critique: Critique | None = None
     scorecard: Scorecard | None = None
+    # Phase 7 (additive, still v3): normalized emotion + per-bucket trigger playbook.
+    emotion: EmotionProfile | None = None
+    trigger_playbook: list[TriggerPlay] = Field(default_factory=list)
 
 
 # --- Phase 4: Trend Radar ----------------------------------------------------

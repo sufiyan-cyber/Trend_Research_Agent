@@ -4,6 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trend Research Agent — Dashboard</title>
+<script>
+/* Purge any leftover service worker from a previous project on this port — it
+   was intercepting requests and serving stale pages, ignoring Cache-Control.
+   Runs whenever the real HTML loads; reloads once if a worker was controlling
+   the page. Self-terminating: once unregistered, getRegistrations() is empty. */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function (regs) {
+    if (!regs.length) return;
+    var hadController = !!navigator.serviceWorker.controller;
+    Promise.all(regs.map(function (r) { return r.unregister(); }))
+      .then(function () { return (typeof caches !== 'undefined') ? caches.keys() : []; })
+      .then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); })
+      .then(function () { if (hadController) location.reload(); });
+  });
+}
+</script>
 <style>
   :root{
     --bg:#0b1220; --surface:#131c2e; --surface2:#1a2438; --border:#263145;
@@ -151,13 +167,14 @@
 </main>
 
 <script type="module">
-import {verdictMix,rankedBars,histogram,riskBar} from '/static/charts.js';
+/* ?v= busts stale browser caches when charts.js changes — bump it on chart edits. */
+import {verdictMix,rankedBars,histogram,riskBar,CHART_COLORS} from '/static/charts.js?v=2';
 
 const $=s=>document.querySelector(s);
 const esc=s=>{const d=document.createElement('div');d.textContent=s??'';return d.innerHTML};
 const j=async u=>{const r=await fetch(u);return r.ok?r.json():null};
 
-(async()=>{
+async function loadDashboard(){
   const an=await j('/analytics');
   if(an){
     const kp=[
@@ -181,9 +198,16 @@ const j=async u=>{const r=await fetch(u);return r.ok?r.json():null};
         `${an.risk.total_weaknesses} weaknesses across ${an.risk.critiqued_reports} critiqued report(s). `+
         `A corpus with no high-severity findings usually means the critic has gone soft, not that the campaigns are flawless.`;
     }
-    if(an.emotions.items.length)rankedBars($('#emoChart'),an.emotions.items,{
-      label:'Campaigns per dominant emotion',labelW:130,headers:['Emotion','Campaigns'],
-      tableCaption:'View emotions as table'});
+    if(an.emotions.items.length){
+      const VAL={positive:CHART_COLORS.rising,negative:CHART_COLORS.fading,desire:CHART_COLORS.series,unclassified:CHART_COLORS.muted};
+      rankedBars($('#emoChart'),an.emotions.items.map(i=>({...i,dotColor:VAL[i.valence]||VAL.unclassified,note:i.valence})),{
+        label:'Campaigns per dominant emotion',labelW:130,headers:['Emotion','Campaigns','Valence'],
+        extraCol:'valence',tableCaption:'View emotions as table'});
+      const vt=an.emotions.valence_totals||{};
+      const legend=document.createElement('div');legend.className='chartlegend';
+      legend.innerHTML=Object.entries(vt).map(([k,n])=>`<span><i style="background:${VAL[k]||VAL.unclassified}"></i>${esc(k)} (${n})</span>`).join('');
+      $('#emoChart').appendChild(legend);
+    }
   }
 
   const trends=await j('/trends');
@@ -230,7 +254,13 @@ const j=async u=>{const r=await fetch(u);return r.ok?r.json():null};
     $('#costs').innerHTML=`<table aria-label="Token usage by node"><thead><tr><th>node</th><th>calls</th><th>in</th><th>out</th><th>total</th></tr></thead><tbody>${rows||'<tr><td colspan=5 class="muted">no reports yet</td></tr>'}</tbody></table>
     <p class="mono" style="margin-bottom:0">reports: ${c.reports} · total tokens: ${c.total_tokens.toLocaleString()} · radar filter rate: ${fr===null?'n/a':(fr*100).toFixed(0)+'%'} (target ≥80%)</p>`;
   }
-})();
+}
+loadDashboard();
+
+// If the browser revives this page from the back/forward cache, scripts do NOT
+// re-run — the DOM is a frozen snapshot with stale data. Refetch on revival.
+// (Every section loader overwrites its host, so re-running is idempotent.)
+addEventListener('pageshow',e=>{if(e.persisted)loadDashboard()});
 
 async function doAsk(){
   const q=$('#q').value.trim();if(q.length<3)return;

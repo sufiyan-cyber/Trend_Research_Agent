@@ -31,4 +31,4 @@ Numbers with sources · screenshots as receipts · named people with faces · ti
 
 ## Emotion map (pick the dominant one)
 
-FOMO · aspiration · belonging · insecurity ("everyone's ahead of you") · pride · outrage · relief ("finally someone said it") · curiosity · amusement · nostalgia. Name the exact word/image that fires it.
+Use the full canonical map in the **Emotion Map** skill-pack document (positive / negative / consumer-desire groups) — pick exactly one term from it, spelled as written there. Name the exact word/image that fires it.

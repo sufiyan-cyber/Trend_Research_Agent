@@ -98,8 +98,8 @@ function tableView(headers, rows, caption) {
   d.innerHTML =
     `<summary>${esc(caption || 'View as table')}</summary>
      <table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
-     <tbody>${rows.map(r => `<tr>${r.map((c, i) =>
-       `<td${i ? ' class="num"' : ''}>${esc(String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+     <tbody>${rows.map(r => `<tr>${r.map(c =>
+       `<td${typeof c === 'number' ? ' class="num"' : ''}>${esc(String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   return d;
 }
 
@@ -124,16 +124,19 @@ export function relevanceMeter(host, score, note) {
   const band = relevanceBand(score);
   const svg = svgRoot(w, h, `Relevance to us: ${score} out of 100 — ${band.label}`);
 
-  const arc = (from, to) => {
-    const a0 = Math.PI * (1 + from), a1 = Math.PI * (1 + to);
-    const p = t => `${cx + r * Math.cos(t)},${cy + r * Math.sin(t)}`;
-    return `M ${p(a0)} A ${r} ${r} 0 ${to - from > 0.5 ? 1 : 0} 1 ${p(a1)}`;
-  };
-  el('path', { d: arc(0, 1), fill: 'none', stroke: C.track, 'stroke-width': thick, 'stroke-linecap': 'round' }, svg);
+  // One fixed semicircle path (left end -> over the top -> right end) drawn
+  // twice: full-length as the track, partial-length as the fill. The fill's
+  // extent comes from stroke-dasharray over pathLength=100, NOT from arc
+  // endpoint math — so no score can ever produce geometry outside this path.
+  // (The previous endpoint-computed arc mis-set large-arc-flag for scores
+  // > 50 and SVG drew a giant displaced arc over the card header.)
+  const semi = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+  el('path', { d: semi, fill: 'none', stroke: C.track, 'stroke-width': thick, 'stroke-linecap': 'round' }, svg);
   if (score > 0) {
     el('path', {
-      d: arc(0, Math.max(0.012, score / 100)), fill: 'none', stroke: band.color,
+      d: semi, fill: 'none', stroke: band.color,
       'stroke-width': thick, 'stroke-linecap': 'round',
+      pathLength: 100, 'stroke-dasharray': `${Math.max(1.5, score)} 200`,
     }, svg);
   }
 
@@ -433,8 +436,11 @@ export function rankedBars(host, items, opts = {}) {
     const lab = el('text', { x: labelW - 10, y: y + barH - 2, 'text-anchor': 'end', fill: C.muted, style: 'font:12.5px system-ui' }, svg);
     lab.textContent = it.label.length > 24 ? it.label.slice(0, 23) + '…' : it.label;
 
-    if (it.verdict && C[it.verdict]) {
-      el('circle', { cx: labelW - 4, cy: y + barH / 2 - 1, r: 3.5, fill: C[it.verdict] }, svg);
+    // Identity dot beside the label (verdict hue or an explicit dotColor —
+    // e.g. emotion valence). Rides next to the text; never recolours the bar.
+    const dot = it.dotColor || (it.verdict && C[it.verdict]);
+    if (dot) {
+      el('circle', { cx: labelW - 4, cy: y + barH / 2 - 1, r: 3.5, fill: dot }, svg);
     }
     const bw = Math.max(2, (it.value / max) * plotW);
     el('rect', { x: labelW + 6, y, width: bw, height: barH, rx: 4, fill: C.series }, svg);
@@ -443,13 +449,14 @@ export function rankedBars(host, items, opts = {}) {
     const val = el('text', { x: labelW + 12 + bw, y: y + barH - 2, fill: C.text, style: 'font:12px system-ui;font-variant-numeric:tabular-nums' }, svg);
     val.textContent = it.value;
 
+    const sub = it.verdict ? `currently ${esc(it.verdict)}` : (it.note ? esc(it.note) : '');
     const hit = el('rect', { x: 0, y: i * rowH, width: w, height: rowH, fill: 'transparent' }, svg);
-    hoverable(hit, `<strong>${esc(it.label)}</strong> — ${it.value}` + (it.verdict ? `<div style="color:${C.muted};margin-top:3px">currently ${esc(it.verdict)}</div>` : ''));
+    hoverable(hit, `<strong>${esc(it.label)}</strong> — ${it.value}` + (sub ? `<div style="color:${C.muted};margin-top:3px">${sub}</div>` : ''));
   });
 
   mount(host, svg, tableView(
     opts.headers || ['Item', 'Count'],
-    items.map(i => [i.label, i.value]),
+    items.map(i => (opts.extraCol ? [i.label, i.value, i[opts.extraCol] || ''] : [i.label, i.value])),
     opts.tableCaption || 'View as table'));
 }
 

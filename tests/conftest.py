@@ -11,6 +11,7 @@ from PIL import Image
 from app.memory import MemoryIndex
 from app.schemas import (
     AskAnswer,
+    AudienceDraft,
     AudienceFit,
     CampaignReport,
     CampaignReportV3,
@@ -29,6 +30,7 @@ from app.schemas import (
     TrendLine,
     TriageBatch,
     TriageDecision,
+    TriggerPlay,
     Usage,
     VisualAnalysis,
     Weakness,
@@ -90,6 +92,27 @@ FIXTURE_AUDIENCE = AudienceFit(
     content_suggestion="9:16 Reel with screenshot-style receipts, WhatsApp community CTA; rising trend so ship fast.",
     secondary_bucket_id=None,
 )
+
+FIXTURE_PLAYBOOK = [
+    TriggerPlay(
+        bucket_id="final-years",
+        bucket_name="Final-year students facing placements",
+        fit="strong",
+        how_to_fire="Placement deadlines make the peers-ahead trigger native; fire it in the WhatsApp community.",
+        example_hook="3 of your batchmates already have offers. Here's what they did differently.",
+        caution="Anxiety-valence trigger on stressed students — always pair with a concrete next step, never bare dread.",
+    ),
+    TriggerPlay(
+        bucket_id="beginners",
+        bucket_name="Complete beginners",
+        fit="avoid",
+        how_to_fire="Beginners have no peer cohort to compare against — the trigger reads as gatekeeping and scares them off.",
+        example_hook="",
+        caution="",
+    ),
+]
+
+FIXTURE_AUDIENCE_DRAFT = AudienceDraft(fit=FIXTURE_AUDIENCE, trigger_playbook=FIXTURE_PLAYBOOK)
 
 FIXTURE_CITATIONS = [Citation(title="Marketing Dive", url="https://example.com/a")]
 
@@ -177,6 +200,7 @@ _FIXTURES = {
     CampaignReport: FIXTURE_CORE,
     TrendDraft: FIXTURE_TREND,
     AudienceFit: FIXTURE_AUDIENCE,
+    AudienceDraft: FIXTURE_AUDIENCE_DRAFT,
     CritiqueDraft: FIXTURE_CRITIQUE,
     TriageBatch: FIXTURE_TRIAGE,
     DigestModel: FIXTURE_DIGEST,

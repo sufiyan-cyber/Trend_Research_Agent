@@ -7,7 +7,8 @@
 dedupe:   image-hash overlap or near-identical text -> short-circuit, never analyze twice.
 recall:   query memory with the specialists' read -> neighbors feed the composer.
 trend:    memory frequency + grounded web search -> new/rising/peaked/fading + citations.
-audience: which of our buckets the pattern can carry a message to, and the angle.
+audience: which of our buckets the pattern can carry a message to, the angle,
+          and the per-bucket playbook for pulling this campaign's emotional trigger.
 critique: the case *against* — weaknesses, copy risk, what we could not verify.
 finalize: assemble report v3 (+ scorecard) and index the finished analysis into memory.
 
@@ -31,9 +32,12 @@ from app.config import GEMINI_COMPOSER_MODEL, brand_prompt, load_brand, load_pro
 from app.llm import call_structured
 from app.memory import get_memory
 from app.palette import extract_palette
+from app.emotions import emotion_map_lines, normalize
 from app.schemas import (
+    AudienceDraft,
     AudienceFit,
     CampaignReport,
+    EmotionProfile,
     CampaignReportV3,
     Critique,
     CritiqueDraft,
@@ -45,6 +49,7 @@ from app.schemas import (
     StrategyAnalysis,
     TrendDraft,
     TrendVerdict,
+    TriggerPlay,
     Usage,
     VisualAnalysis,
     utcnow,
@@ -69,6 +74,7 @@ class AnalysisState(TypedDict):
     core: CampaignReport | None
     trend: TrendVerdict | None
     audience: AudienceFit | None
+    playbook: list[TriggerPlay]
     critique: Critique | None
     judged: JudgedScores | None
     report: CampaignReportV3 | None
@@ -233,18 +239,29 @@ async def audience_node(state: AnalysisState) -> dict:
             for o in outcomes
         )
         outcome_block = f"\n\n## What has worked for our audience historically (recorded outcomes)\n{lines}"
+
+    # The detected trigger, normalized, stated explicitly — the playbook is
+    # about transferring THIS trigger, not the campaign's surface content.
+    h = state["hook_copy"]
+    canon, valence = normalize(h.dominant_emotion)
+    trigger_block = (
+        f"\n\n## Detected emotional trigger (transfer THIS, not the surface content)\n"
+        f"Emotion: {canon or h.dominant_emotion} (valence: {valence}; specialist wrote: '{h.dominant_emotion}')\n"
+        f"Fired by: {h.trigger_element}\n\n"
+        f"Canonical emotion map for reference:\n{emotion_map_lines()}"
+    )
     briefing = (
         f"## Campaign deconstruction (composed)\n{state['core'].model_dump_json(indent=2)}\n\n"
         f"## Trend verdict\n{state['trend'].model_dump_json(indent=2)}\n\n"
         f"## Our audience bucket registry\n{registry.model_dump_json(indent=2)}"
-        f"{outcome_block}"
+        f"{trigger_block}{outcome_block}"
     )
-    fit, usage = await call_structured(
-        AudienceFit,
+    draft, usage = await call_structured(
+        AudienceDraft,
         [SystemMessage(content=brand_prompt("audience_v1.md")), HumanMessage(content=briefing)],
         node="audience",
     )
-    return {"audience": fit, "usages": [usage]}
+    return {"audience": draft.fit, "playbook": draft.trigger_playbook, "usages": [usage]}
 
 
 async def critique_node(state: AnalysisState) -> dict:
@@ -288,6 +305,15 @@ async def finalize_node(state: AnalysisState) -> dict:
         neighbors=state["neighbors"],
         bucket_channels=sorted({c for b in load_buckets().buckets for c in b.channels}),
     )
+    # Emotion profile is derived, not asked: normalize whatever the hook
+    # specialist wrote so analytics never fragments across spellings.
+    canon, valence = normalize(state["hook_copy"].dominant_emotion)
+    emotion = EmotionProfile(
+        primary=canon,
+        valence=valence,
+        raw=state["hook_copy"].dominant_emotion,
+        trigger_element=state["hook_copy"].trigger_element,
+    )
     report = CampaignReportV3(
         core=state["core"],
         strategy=state["strategy"],
@@ -299,6 +325,8 @@ async def finalize_node(state: AnalysisState) -> dict:
         audience=state["audience"],
         critique=state.get("critique"),
         scorecard=scorecard,
+        emotion=emotion,
+        trigger_playbook=state.get("playbook", []),
     )
     await get_memory().index_report(
         report_id=state["report_id"],
@@ -383,6 +411,7 @@ def initial_state(
         "core": None,
         "trend": None,
         "audience": None,
+        "playbook": [],
         "critique": None,
         "judged": None,
         "report": None,

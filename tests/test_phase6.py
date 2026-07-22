@@ -254,7 +254,7 @@ def test_relevance_and_risk_aggregates():
 def test_emotion_mix_folds_the_tail_into_other():
     payloads = [{"emotion": e} for e in ["fomo"] * 3 + ["pride", "belonging", "envy", "guilt", "awe", "relief"]]
     mix = emotion_mix(payloads, top=3)
-    assert mix["items"][0] == {"label": "fomo", "value": 3}
+    assert mix["items"][0]["label"] == "fomo" and mix["items"][0]["value"] == 3
     assert mix["items"][-1]["label"] == "other"
 
 

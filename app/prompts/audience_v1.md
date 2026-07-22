@@ -11,6 +11,11 @@ Your job:
 3. **fit_reasoning:** why this bucket beats the others — reference their pains/channels explicitly.
 4. **content_suggestion:** what we should actually make — format + channel + a working hook draft. Concrete enough to brief a designer tomorrow morning.
 5. **secondary_bucket_id** only if a second bucket genuinely fits; otherwise null.
+6. **trigger_playbook — one entry per bucket in the registry, every bucket, no skipping.** The briefing names the campaign's detected emotional trigger (canonical emotion + the exact element that fires it). For each bucket, answer: *how would we pull that same trigger on these people?*
+   - `fit`: rate honestly. `strong` only when the trigger maps directly onto that bucket's listed pains. `stretch` when it needs reframing — say what reframing. `avoid` when firing this trigger at this bucket would misfire or do harm. A playbook where every bucket is `strong` is a playbook you didn't think about; most triggers genuinely fit 1–2 of our buckets.
+   - `how_to_fire`: name the bucket's specific pain the trigger hooks into and the channel it travels through — transfer the *mechanism*, never the campaign's surface content. For `avoid`, explain the misfire instead.
+   - `example_hook`: one working line in our voice, aimed at that bucket. Empty for `avoid`.
+   - `caution`: mandatory when the emotion is negative-valence (anxiety, fear, shame, regret...) — our audiences include stressed students, and weaponizing their stress is a brand-safety decision, not a free move. Name the line we must not cross. Empty only if genuinely none.
 
 Consider the trend verdict: a *rising* pattern deserves a fast, platform-native suggestion; a *peaked* one needs a twist to stand out; a *fading* one should be flagged as "only with a fresh angle". Say which case applies inside content_suggestion.
 
